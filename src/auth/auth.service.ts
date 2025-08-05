@@ -1,23 +1,27 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { users } from 'src/drizzle/schema';
+import { roles, users } from 'src/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE_ORM, DrizzleORM } from 'src/drizzle/drizzle.module';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { responder } from 'src/utils/response.utils';
+import { permissions } from 'src/utils/permissions.utils';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     @Inject(DRIZZLE_ORM) private db: DrizzleORM,
-  ) {}
+  ) {
+    this.seedSuperAdmin();
+  }
 
-  async validateUser(email: string): Promise<typeof users.$inferSelect | null> {
+  async validateUser(email: string) {
     const user = await this.db.query.users.findFirst({
       where: eq(users.email, email),
     });
+    console.log(user, 'user');
     if (user && user.isEmailVerified) {
       return user;
     }
@@ -35,8 +39,31 @@ export class AuthService {
     }
     const payload = { username: user.email, sub: user.id };
     return responder(200, {
-      access_token: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload),
       user,
     });
+  }
+
+  async seedSuperAdmin() {
+    const role = await this.db.query.roles.findFirst({
+      where: eq(roles.name, 'super_admin'),
+    });
+    if (role) {
+      return;
+    }
+    const superAdmin = await this.db.insert(roles).values({
+      name: 'super_admin',
+      permissions: Object.values(permissions.admin).flat(),
+      type: 'admin',
+    });
+    const createdUser = await this.db.insert(users).values({
+      email: 'superadmin@yopmail.com',
+      password: await bcrypt.hash('Superpass', 10),
+      fullName: 'Super Admin',
+      roleId: superAdmin.id,
+      isEmailVerified: true,
+    });
+
+    console.log('Super admin seeded');
   }
 }

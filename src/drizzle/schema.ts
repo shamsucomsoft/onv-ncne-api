@@ -1,14 +1,13 @@
 import { relations } from 'drizzle-orm';
 import {
-  pgTable,
-  serial,
-  text,
-  varchar,
-  integer,
-  pgEnum,
-  timestamp,
   boolean,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 
 export const RoleType = pgEnum('role_type', ['collector', 'admin']);
@@ -17,20 +16,47 @@ export enum RoleTypeEnum {
   ADMIN = 'admin',
 }
 
-export const roles = pgTable('roles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
-  permissions: text('permissions').array().notNull(),
-  type: RoleType('role_type').notNull(),
-});
+export const UserStatus = pgEnum('user_status', [
+  'active',
+  'invited',
+  'suspended',
+]);
+export enum UserStatusEnum {
+  ACTIVE = 'active',
+  INVITED = 'invited',
+  SUSPENDED = 'suspended',
+}
+
+export const roles = pgTable(
+  'roles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    permissions: text('permissions').array().notNull(),
+    type: RoleType('role_type').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+    createdBy: uuid('created_by').references(() => users.id),
+  },
+  (table) => ({
+    uniqueName: uniqueIndex('unique_name').on(table.name),
+  }),
+);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   fullName: text('full_name'),
   email: varchar('email', { length: 256 }).notNull(),
-  roleId: integer('role_id').references(() => roles.id),
-  password: varchar('password', { length: 256 }).notNull(),
+  roleId: uuid('role_id').references(() => roles.id),
+  password: varchar('password', { length: 256 }),
+  status: UserStatus('status').notNull().default('invited'),
   isEmailVerified: boolean('is_email_verified').notNull().default(false),
+  invitationToken: uuid('invitation_token'),
+  invitationExpiresAt: timestamp('invitation_expires_at'),
+  invitedBy: uuid('invited_by').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -39,7 +65,7 @@ export const users = pgTable('users', {
 });
 
 export const tokens = pgTable('tokens', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey(),
   token: varchar('token', { length: 6 }).notNull(),
   email: varchar('email', { length: 256 }).notNull(),
   used: boolean('used').notNull().default(false),
@@ -55,6 +81,10 @@ export const usersRelations = relations(users, ({ one }) => ({
   role: one(roles, {
     fields: [users.roleId],
     references: [roles.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [users.invitedBy],
+    references: [users.id],
   }),
 }));
 

@@ -1,22 +1,13 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { Roles } from './decorators/roles.decorator';
-import { RoleTypeGuard } from './guards/role-type.guard';
-import { LoginDto } from './dto/login.dto';
-import { roles, RoleType, users, RoleTypeEnum } from 'src/drizzle/schema';
-import * as bcrypt from 'bcrypt';
-import { UserDecorator } from './decorators/user.decorator';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { roles, RoleTypeEnum, users } from 'src/drizzle/schema';
 import { responder } from 'src/utils/response.utils';
-import { PowerSyncService } from './powersync.service';
+import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { UserDecorator } from './decorators/user.decorator';
+import { LoginDto } from './dto/login.dto';
+import { RoleTypeGuard } from './guards/role-type.guard';
+import { PowerSyncService } from './powersync.service';
 
 export type UserWithRole = typeof users.$inferSelect & {
   role: typeof roles.$inferSelect | null;
@@ -31,6 +22,7 @@ export class AuthController {
     private readonly powerSyncService: PowerSyncService,
   ) {}
 
+  @Public()
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.service.login(loginDto);
