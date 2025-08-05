@@ -1,0 +1,384 @@
+[
+  {
+    "groupId": "basic_information",
+    "type": "date",
+    "label": "Date of Survey"
+  },
+  {
+    "groupId": "basic_information",
+    "type": "text",
+    "label": "State"
+  },
+  {
+    "groupId": "basic_information",
+    "type": "text",
+    "label": "Local Government Area"
+  },
+  {
+    "groupId": "basic_information",
+    "type": "text",
+    "label": "Name of Community"
+  },
+  {
+    "groupId": "basic_information",
+    "type": "group",
+    "label": "GPS Coordinates of the Community",
+    "questions": [
+      {
+        "type": "number",
+        "label": "N-Degree (°)"
+      },
+      {
+        "type": "number",
+        "label": "N-Minutes"
+      },
+      {
+        "type": "number",
+        "label": "N-Seconds"
+      },
+      {
+        "type": "number",
+        "label": "E-Degree (°)"
+      },
+      {
+        "type": "number",
+        "label": "E-Minutes"
+      },
+      {
+        "type": "number",
+        "label": "E-Seconds"
+      }
+    ]
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "text",
+    "label": "Name of Respondent"
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "radio",
+    "label": "Sex",
+    "options": [
+      { "label": "Male", "value": "male" },
+      { "label": "Female", "value": "female" }
+    ]
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "radio",
+    "label": "Age range of respondent",
+    "options": [
+      { "label": "16 to 20", "value": "16-20" },
+      { "label": "21 to 25", "value": "21-25" },
+      { "label": "26 to 30", "value": "26-30" },
+      { "label": "31 to 35", "value": "31-35" },
+      { "label": "36 and above", "value": "36_and_above" }
+    ]
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "phone",
+    "label": "Respondent's Phone No"
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "email",
+    "label": "Respondent's email (if available)"
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "radio",
+    "label": "Level of Education",
+    "options": [
+      { "label": "Quranic", "value": "quranic" },
+      { "label": "Adult Literacy", "value": "adult_literacy" },
+      { "label": "FSLC", "value": "fslc" },
+      { "label": "JSSCE", "value": "jssce" },
+      { "label": "SSCE", "value": "ssce" },
+      { "label": "AISSCE", "value": "aissce" },
+      { "label": "NCE, OND, ND", "value": "tertiary" },
+      { "label": "Non-Literate", "value": "non_literate" }
+    ]
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "radio",
+    "label": "Type of Nomadism",
+    "options": [
+      { "label": "Settled", "value": "settled" },
+      { "label": "Semi-Settled", "value": "semi_settled" },
+      { "label": "Mobile", "value": "mobile" }
+    ]
+  },
+  {
+    "groupId": "demographic_information",
+    "type": "checkbox",
+    "label": "Occupation",
+    "options": [
+      { "label": "Herding", "value": "herding" },
+      { "label": "Farming", "value": "farming" },
+      { "label": "Fishing", "value": "fishing" },
+      { "label": "Trading", "value": "trading" },
+      { "label": "Artisan", "value": "artisan" },
+      { "label": "Others (specify)", "value": "others" }
+    ]
+  },
+  {
+    "groupId": "current_skills",
+    "type": "radio",
+    "label": "Do you currently have skills for livelihoods?",
+    "options": [
+      { "label": "Yes", "value": "yes" },
+      { "label": "No", "value": "no" }
+    ]
+  },
+  {
+    "groupId": "current_skills",
+    "type": "textarea",
+    "label": "If yes, what skills do you possess?"
+  },
+  {
+    "groupId": "current_skills",
+    "type": "radio",
+    "label": "How confident are you in your ability to use these skills?",
+    "options": [
+      { "label": "Very Low", "value": 1 },
+      { "label": "Low", "value": 2 },
+      { "label": "Moderate", "value": 3 },
+      { "label": "High", "value": 4 },
+      { "label": "Very high", "value": 5 }
+    ]
+  },
+  {
+    "groupId": "current_skills",
+    "type": "textarea",
+    "label": "If no, why?"
+  },
+  {
+    "groupId": "skills_need",
+    "type": "radio",
+    "label": "Would you like to be trained to acquire a skill?",
+    "options": [
+      { "label": "Yes", "value": "yes" },
+      { "label": "No", "value": "no" }
+    ]
+  },
+  {
+    "groupId": "skills_need",
+    "type": "textarea",
+    "label": "What skill(s) will you like to develop or learn further?"
+  },
+  {
+    "groupId": "skills_need",
+    "type": "radio",
+    "label": "How relevant do you feel these skills are for your further success?",
+    "options": [
+        { "label": "Highly irrelevant", "value": 1 },
+        { "label": "Irrelevant", "value": 2 },
+        { "label": "Fairly relevant", "value": 3 },
+        { "label": "Relevant", "value": 4 },
+        { "label": "Highly relevant", "value": 5 }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "textarea",
+    "label": "What specific skills do you think are most needed in your community/job market?"
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "checkbox",
+    "label": "What type of skills are you interested in learning? Pick from the options below:",
+    "options": [
+      {"label": "Livestock production (Dairy & Beef)", "value": "livestock_dairy_beef"},
+      {"label": "Livestock production (Small Ruminants)", "value": "livestock_small_ruminants"},
+      {"label": "Livestock Feeds Production", "value": "livestock_feeds"},
+      {"label": "Poultry Farming", "value": "poultry"},
+      {"label": "Rabbitary farming", "value": "rabbitary"},
+      {"label": "Fish Production", "value": "fish_production"},
+      {"label": "Snailery (Snail farming)", "value": "snailery"},
+      {"label": "Bee Keeping", "value": "bee_keeping"},
+      {"label": "Crop Production", "value": "crop_production"},
+      {"label": "Irrigation Farming", "value": "irrigation"},
+      {"label": "Gardening", "value": "gardening"},
+      {"label": "Information and Communication Technology (ICT)", "value": "ict"},
+      {"label": "Phone Repairs (Mobile)", "value": "phone_repairs"},
+      {"label": "Fashion Design (Sewing and Tailoring)", "value": "fashion_design"},
+      {"label": "Wool knitting and Crochet", "value": "knitting"},
+      {"label": "Hair Dressing and Cosmetology", "value": "hair_dressing"},
+      {"label": "Beads and Raffia making", "value": "beads_raffia"},
+      {"label": "Shoe and bag Making", "value": "shoe_bag_making"},
+      {"label": "Auto Mechanic (motorcycle and bicycle repairs)", "value": "auto_mechanic"},
+      {"label": "Carpentry & Joinery", "value": "carpentry"},
+      {"label": "Masonry (Mason)", "value": "masonry"},
+      {"label": "Pomade and Soap making", "value": "pomade_soap_making"},
+      {"label": "Pottery and Ceramics making", "value": "pottery_ceramics"},
+      {"label": "Solar power installation and repairs", "value": "solar_power"},
+      {"label": "Welding & fabrication", "value": "welding"},
+      {"label": "Catering and catering services", "value": "catering"},
+      {"label": "Others (please specify)", "value": "others"}
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "radio",
+    "label": "Choose one most preferred type of skill you are interested in learning. Pick from the options below:",
+    "options": [
+      {"label": "Livestock production (Dairy & Beef)", "value": "livestock_dairy_beef"},
+      {"label": "Livestock production (Small Ruminants)", "value": "livestock_small_ruminants"},
+      {"label": "Livestock Feeds Production", "value": "livestock_feeds"},
+      {"label": "Poultry Farming", "value": "poultry"},
+      {"label": "Rabbitary farming", "value": "rabbitary"},
+      {"label": "Fish Production", "value": "fish_production"},
+      {"label": "Snailery (Snail farming)", "value": "snailery"},
+      {"label": "Bee Keeping", "value": "bee_keeping"},
+      {"label": "Crop Production", "value": "crop_production"},
+      {"label": "Irrigation Farming", "value": "irrigation"},
+      {"label": "Gardening", "value": "gardening"},
+      {"label": "Information and Communication Technology (ICT)", "value": "ict"},
+      {"label": "Phone Repairs (Mobile)", "value": "phone_repairs"},
+      {"label": "Fashion Design (Sewing and Tailoring)", "value": "fashion_design"},
+      {"label": "Wool knitting and Crochet", "value": "knitting"},
+      {"label": "Hair Dressing and Cosmetology", "value": "hair_dressing"},
+      {"label": "Beads and Raffia making", "value": "beads_raffia"},
+      {"label": "Shoe and bag Making", "value": "shoe_bag_making"},
+      {"label": "Auto Mechanic (motorcycle and bicycle repairs)", "value": "auto_mechanic"},
+      {"label": "Carpentry & Joinery", "value": "carpentry"},
+      {"label": "Masonry (Mason)", "value": "masonry"},
+      {"label": "Pomade and Soap making", "value": "pomade_soap_making"},
+      {"label": "Pottery and Ceramics making", "value": "pottery_ceramics"},
+      {"label": "Solar power installation and repairs", "value": "solar_power"},
+      {"label": "Welding & fabrication", "value": "welding"},
+      {"label": "Catering and catering services", "value": "catering"},
+      {"label": "Others (please specify)", "value": "others"}
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "radio",
+    "label": "What are your preferred method for learning new skills?",
+    "options": [
+      { "label": "Formal Training", "value": "formal_training" },
+      { "label": "Informal Training", "value": "informal_training" },
+      { "label": "Apprenticeship", "value": "apprenticeship" },
+      { "label": "Others", "value": "others" }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "radio",
+    "label": "What resources do you currently have to learn new skills in your community or nearby community?",
+    "options": [
+      { "label": "Vocational Training Centres", "value": "vocational_centres" },
+      { "label": "Local Training Centres", "value": "local_centres" },
+      { "label": "Community Programmes", "value": "community_programmes" },
+      { "label": "Apprenticeship training workshops", "value": "apprenticeship_workshops" },
+      { "label": "None of the above", "value": "none" }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "radio",
+    "label": "What are your preferred learning times?",
+    "options": [
+      { "label": "Morning", "value": "morning" },
+      { "label": "Afternoon", "value": "afternoon" },
+      { "label": "Evening", "value": "evening" }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "checkbox",
+    "label": "What are the biggest barriers you face in accessing skills acquisition opportunities?",
+    "options": [
+      { "label": "Financial Cost", "value": "financial_cost" },
+      { "label": "Time Constraint", "value": "time_constraint" },
+      { "label": "Lack of Information on available skills", "value": "lack_of_information" },
+      { "label": "Inaccessibility", "value": "inaccessibility" },
+      { "label": "Insecurity", "value": "insecurity" },
+      { "label": "Health challenges/disability", "value": "health_challenges" },
+      { "label": "Others", "value": "others" }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "radio",
+    "label": "Indicate if you will be available for training outside your community.",
+    "options": [
+      { "label": "Yes", "value": "yes" },
+      { "label": "No", "value": "no" }
+    ]
+  },
+  {
+    "groupId": "desired_skills",
+    "type": "text",
+    "label": "If yes, how soon?"
+  },
+  {
+    "groupId": "perception_of_skills",
+    "type": "radio",
+    "label": "Do you believe that skills acquisition is important for personal and community socioeconomic development/ professional success?",
+    "options": [
+      { "label": "Strongly Disagree", "value": 1 },
+      { "label": "Disagree", "value": 2 },
+      { "label": "Moderately Agree", "value": 3 },
+      { "label": "Agree", "value": 4 },
+      { "label": "Strongly Agree", "value": 5 }
+    ]
+  },
+  {
+    "groupId": "perception_of_skills",
+    "type": "radio",
+    "label": "How will you describe the overall level of skills acquisition support available in your community?",
+    "options": [
+      { "label": "Very Low", "value": 1 },
+      { "label": "Low", "value": 2 },
+      { "label": "Moderately low", "value": 3 },
+      { "label": "High", "value": 4 },
+      { "label": "Very High", "value": 5 }
+    ]
+  },
+  {
+    "groupId": "perception_of_skills",
+    "type": "radio",
+    "label": "Do you believe that skills acquisition is effective for financial security?",
+    "options": [
+      { "label": "Strongly Disagree", "value": 1 },
+      { "label": "Disagree", "value": 2 },
+      { "label": "Moderately Agree", "value": 3 },
+      { "label": "Agree", "value": 4 },
+      { "label": "Strongly Agree", "value": 5 }
+    ]
+  },
+  {
+    "groupId": "perception_of_skills",
+    "type": "textarea",
+    "label": "What else will you like to share about your experiences with skills acquisition or your need for skill development?"
+  },
+  {
+    "groupId": "perception_of_skills",
+    "type": "textarea",
+    "label": "Do you have any suggestion on how skills acquisition programm can be improved in your community?"
+  },
+  {
+    "groupId": "enumerator_details",
+    "type": "file",
+    "label": "Evidence of Facial capture"
+  },
+  {
+    "groupId": "enumerator_details",
+    "type": "file",
+    "label": "Thumb Print of respondent"
+  },
+  {
+    "groupId": "enumerator_details",
+    "type": "text",
+    "label": "Name of Enumerator"
+  },
+  {
+    "groupId": "enumerator_details",
+    "type": "phone",
+    "label": "Phone No"
+  }
+]
