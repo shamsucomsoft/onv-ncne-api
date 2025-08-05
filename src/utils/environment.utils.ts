@@ -4,5 +4,8 @@ export const environment = {
   origins: [
     process.env.CORS_ORIGIN ?? 'http://localhost:5173',
     'http://localhost:5174',
+    'https://ncaoosce.gov.ng',
+    'https://ncne.bemisedu.org',
+    'https://nmec.bemisedu.org',
   ],
 };
