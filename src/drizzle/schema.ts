@@ -79,6 +79,44 @@ export const tokens = pgTable('tokens', {
   expiresAt: timestamp('expires_at').notNull(),
 });
 
+// Standalone communities table
+export const communities = pgTable(
+  'communities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    nameOfCommunity: text('name_of_community').notNull(),
+    state: text('state').notNull(),
+    localGovernmentArea: text('local_government_area').notNull(),
+    zone: varchar('zone', {
+      enum: [
+        'north-west',
+        'north-east',
+        'north-central',
+        'south-east',
+        'south-west',
+        'south-south',
+      ],
+    }),
+    latitude: doublePrecision('latitude'),
+    longitude: doublePrecision('longitude'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    uniqueCommunity: uniqueIndex('unique_community').on(
+      table.state,
+      table.localGovernmentArea,
+      table.nameOfCommunity,
+    ),
+    communities_state_idx: index('communities_state_idx').on(table.state),
+    communities_lga_idx: index('communities_lga_idx').on(table.localGovernmentArea),
+  }),
+);
+
 export const usersRelations = relations(users, ({ one }) => ({
   role: one(roles, {
     fields: [users.roleId],
@@ -112,9 +150,11 @@ export const basicInformation = pgTable(
   'basic_information',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    submissionId: uuid('submission_id')
-      .references(() => skillsSurveySubmissions.id)
-      .notNull(),
+    imageUrl: text('image_url'),
+    nin: varchar('nin', { length: 32 }),
+    submissionId: uuid('submission_id').notNull(),
+    communityId: uuid('community_id').references(() => communities.id).notNull(),
+    enteredBy: uuid('entered_by').references(() => users.id),
     dateOfSurvey: timestamp('date_of_survey'),
     state: text('state'),
     localGovernmentArea: text('local_government_area'),
@@ -148,9 +188,8 @@ export const demographicInformation = pgTable(
   'demographic_information',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    submissionId: uuid('submission_id')
-      .references(() => skillsSurveySubmissions.id)
-      .notNull(),
+    submissionId: uuid('submission_id').notNull(),
+    enteredBy: uuid('entered_by').references(() => users.id),
     firstName: text('first_name').notNull(),
     middleName: text('middle_name'),
     lastName: text('last_name').notNull(),
@@ -201,9 +240,8 @@ export const demographicInformation = pgTable(
 // Current Skills
 export const currentSkills = pgTable('current_skills', {
   id: uuid('id').primaryKey().defaultRandom(),
-  submissionId: uuid('submission_id')
-    .references(() => skillsSurveySubmissions.id)
-    .notNull(),
+  submissionId: uuid('submission_id').notNull(),
+  enteredBy: uuid('entered_by').references(() => users.id),
   hasSkills: varchar('has_skills', { enum: ['yes', 'no'] }),
   skillsDescription: text('skills_description'),
   confidenceLevel: varchar('confidence_level', {
@@ -220,9 +258,8 @@ export const currentSkills = pgTable('current_skills', {
 // Skills Need
 export const skillsNeed = pgTable('skills_need', {
   id: uuid('id').primaryKey().defaultRandom(),
-  submissionId: uuid('submission_id')
-    .references(() => skillsSurveySubmissions.id)
-    .notNull(),
+  submissionId: uuid('submission_id').notNull(),
+  enteredBy: uuid('entered_by').references(() => users.id),
   wantTraining: varchar('want_training', { enum: ['yes', 'no'] }),
   skillsToLearn: text('skills_to_learn'),
   skillsRelevance: varchar('skills_relevance', {
@@ -240,9 +277,8 @@ export const desiredSkills = pgTable(
   'desired_skills',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    submissionId: uuid('submission_id')
-      .references(() => skillsSurveySubmissions.id)
-      .notNull(),
+    submissionId: uuid('submission_id').notNull(),
+    enteredBy: uuid('entered_by').references(() => users.id),
     communitySkillsNeeded: text('community_skills_needed'),
     // Interest checkboxes
     interestedLivestockDairyBeef: boolean(
@@ -374,9 +410,8 @@ export const desiredSkills = pgTable(
 // Perception of Skills
 export const perceptionOfSkills = pgTable('perception_of_skills', {
   id: uuid('id').primaryKey().defaultRandom(),
-  submissionId: uuid('submission_id')
-    .references(() => skillsSurveySubmissions.id)
-    .notNull(),
+  submissionId: uuid('submission_id').notNull(),
+  enteredBy: uuid('entered_by').references(() => users.id),
   skillsImportanceForDevelopment: varchar('skills_importance_for_development', {
     enum: ['1', '2', '3', '4', '5'],
   }),
@@ -422,6 +457,10 @@ export const basicInformationRelations = relations(
       fields: [basicInformation.submissionId],
       references: [skillsSurveySubmissions.id],
     }),
+    community: one(communities, {
+      fields: [basicInformation.communityId],
+      references: [communities.id],
+    }),
   }),
 );
 
@@ -465,3 +504,11 @@ export const perceptionOfSkillsRelations = relations(
     }),
   }),
 );
+
+export const communitiesRelations = relations(communities, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [communities.createdBy],
+    references: [users.id],
+  }),
+  basicInformation: many(basicInformation),
+}));

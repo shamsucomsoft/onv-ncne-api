@@ -1,0 +1,47 @@
+# Define sync rules to control which data is synced to each user
+# See the docs: https://docs.powersync.com/usage/sync-rules
+
+bucket_definitions:
+  # Global reference data available to all users
+  global:
+    data:
+      - SELECT * FROM roles
+      - SELECT * FROM communities
+
+  # The signed-in user's profile
+  my_profile:
+    parameters: |
+      SELECT request.user_id() AS user_id
+    data:
+      - SELECT * FROM users WHERE id = bucket.user_id
+
+  # Collector-specific survey data
+  my_surveys:
+    parameters: |
+      SELECT request.user_id() AS user_id
+    data:
+      # Main submissions authored by this user
+      - SELECT * FROM skills_survey_submissions
+        WHERE submitted_by = bucket.user_id
+
+      # Child tables joined via submission linkage (robust if data is edited by other users)
+      - SELECT * FROM basic_information WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+      - SELECT * FROM demographic_information WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+      - SELECT * FROM current_skills WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+      - SELECT * FROM skills_need WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+      - SELECT * FROM desired_skills WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+      - SELECT * FROM perception_of_skills WHERE submission_id IN (
+          SELECT id FROM skills_survey_submissions WHERE submitted_by = bucket.user_id
+        )
+
+  

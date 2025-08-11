@@ -14,14 +14,18 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject(DRIZZLE_ORM) private db: DrizzleORM,
   ) {
+    console.log('Seeding super admin and collector');
     this.seedSuperAdmin();
+    this.seedCollector();
   }
 
   async validateUser(email: string) {
     const user = await this.db.query.users.findFirst({
       where: eq(users.email, email),
+      with: {
+        role: true,
+      },
     });
-    console.log(user, 'user');
     if (user && user.isEmailVerified) {
       return user;
     }
@@ -45,25 +49,64 @@ export class AuthService {
   }
 
   async seedSuperAdmin() {
-    const role = await this.db.query.roles.findFirst({
+    let role = await this.db.query.roles.findFirst({
       where: eq(roles.name, 'super_admin'),
     });
     if (role) {
-      return;
-    }
-    const superAdmin = await this.db.insert(roles).values({
+      this.db.update(roles).set({
+        permissions: Object.values(permissions.admin).flat(),
+        type: 'admin',
+      }).where(eq(roles.name, 'super_admin'));
+    } else {
+    role = await this.db.insert(roles).values({
       name: 'super_admin',
-      permissions: Object.values(permissions.admin).flat(),
-      type: 'admin',
-    });
+        permissions: Object.values(permissions.admin).flat(),
+        type: 'super_admin',
+      }).returning();
+    }
     const createdUser = await this.db.insert(users).values({
       email: 'superadmin@yopmail.com',
       password: await bcrypt.hash('Superpass', 10),
       fullName: 'Super Admin',
-      roleId: superAdmin.id,
+      roleId: role!.id,
       isEmailVerified: true,
     });
 
     console.log('Super admin seeded');
+  }
+
+  async seedCollector() {
+    let role = await this.db.query.roles.findFirst({
+      where: eq(roles.name, 'collector'),
+    }); 
+    if (role) {
+      this.db.update(roles).set({
+        permissions: Object.values(permissions.collector).flat(),
+        type: 'collector',
+      }).where(eq(roles.name, 'collector'));
+    } else {
+    role = await this.db.insert(roles).values({
+      name: 'collector',
+      permissions: Object.values(permissions.collector).flat(),
+      type: 'collector',
+    }).returning();
+     
+  }
+
+    const collector = await this.db.query.users.findFirst({
+      where: eq(users.email, 'collector@yopmail.com'),
+    });
+    if (collector) {
+      return;
+    }
+    const createdUser = await this.db.insert(users).values({
+      email: 'collector@yopmail.com',
+      password: await bcrypt.hash('Collectorpass', 10),
+      fullName: 'Abu Isah',
+        roleId: role!.id,
+      isEmailVerified: true,
+    });
+
+    console.log('Collector seeded');
   }
 }

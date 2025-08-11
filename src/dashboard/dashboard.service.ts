@@ -8,6 +8,10 @@ import {
   desiredSkills,
   currentSkills,
   perceptionOfSkills,
+  communities,
+  users,
+  roles,
+  skillsNeed,
 } from '../drizzle/schema';
 import {
   DashboardFiltersDto,
@@ -21,6 +25,7 @@ import {
   TopSkillDto,
   DashboardInsightsResponseDto,
   InsightDto,
+  DashboardLiteResponseDto,
 } from './dto/dashboard.dto';
 import { DRIZZLE_ORM, DrizzleORM } from 'src/drizzle/drizzle.module';
 
@@ -77,28 +82,94 @@ export class DashboardService {
     };
   }
 
+  async getDashboardStatsLite(
+    filters: DashboardFiltersDto,
+  ): Promise<DashboardLiteResponseDto> {
+    const whereConditions = this.buildWhereConditions(filters);
+
+    console.log('whereConditions', whereConditions?.toString());
+    // Run all queries in parallel for efficiency
+    const [
+      overallData,
+      stateBreakdown,
+      demographics,
+      skillsData,
+      perceptionsData,
+      recentsData,
+    ] = await Promise.all([
+      this.getOverallStatsLite(whereConditions),
+      this.getStateBreakdownLite(whereConditions),
+      this.getDemographicsLite(whereConditions),
+      this.getSkillsDataLite(whereConditions),
+      this.getPerceptionsLite(whereConditions),
+      this.getRecentsLite(whereConditions),
+    ]);
+
+    return {
+      overall: overallData,
+      stateBreakdown,
+      demographics,
+      skills: skillsData,
+      perceptions: perceptionsData,
+      recents: recentsData,
+    };
+  }
+
+  async getPublicData() {
+    const data = {
+      collections: 0,
+      states: 0,
+      communities: 0,
+      gender: {male:0, female:0},
+    }
+    const [
+      collections,
+      states,
+      _communities,
+      gender,
+      _gender,
+    ] = await Promise.all([
+      this.db.select({ count: count() }).from(skillsSurveySubmissions),
+      this.db.select({ count: count(communities.state) }).from(communities).groupBy(communities.state),
+      this.db.select({ count: count() }).from(communities),
+      this.db
+        .select({ count: count() })
+        .from(demographicInformation)
+        .where(eq(demographicInformation.sex, 'male')),
+      this.db
+        .select({ count: count() })
+        .from(demographicInformation)
+        .where(eq(demographicInformation.sex, 'female')),
+    ]);
+    data.collections = collections[0]?.count || 0;
+    data.states = states[0]?.count || 0;
+    data.communities = _communities[0]?.count || 0;
+    data.gender.male = gender[0]?.count || 0;
+    data.gender.female = _gender[0]?.count || 0;
+    return data;
+  }
   private buildWhereConditions(filters: DashboardFiltersDto) {
     const conditions: SQL[] = [];
 
-    if (filters.state && filters.state !== 'ALL') {
-      conditions.push(eq(basicInformation.state, filters.state));
-    }
+    // if (filters.state && filters.state !== 'ALL') {
+    //   conditions.push(eq(basicInformation.state, filters.state));
+    // }
 
-    if (filters.zone) {
-      conditions.push(eq(basicInformation.zone, filters.zone));
-    }
+    // if (filters.zone) {
+    //   conditions.push(eq(basicInformation.zone, filters.zone));
+    // }
 
-    if (filters.dateFrom) {
-      conditions.push(
-        gte(basicInformation.dateOfSurvey, new Date(filters.dateFrom)),
-      );
-    }
+    // if (filters.dateFrom) {
+    //   conditions.push(
+    //     gte(skillsSurveySubmissions.submittedAt, new Date(filters.dateFrom)),
+    //   );
+    // }
 
-    if (filters.dateTo) {
-      conditions.push(
-        lte(basicInformation.dateOfSurvey, new Date(filters.dateTo)),
-      );
-    }
+    // if (filters.dateTo) {
+    //   conditions.push(
+    //     lte(skillsSurveySubmissions.submittedAt, new Date(filters.dateTo)),
+    //   );
+    // }
 
     return conditions.length > 0 ? and(...conditions) : undefined;
   }
@@ -539,6 +610,686 @@ export class DashboardService {
     }
 
     return { insights, keyFindings, recommendations };
+  }
+
+  private async getOverallStatsLite(whereConditions: any) {
+    const [
+      submissionsResult,
+      completedResult,
+      usersResult,
+      rolesResult,
+      statesResult,
+      communitiesResult,
+      geoTaggedResult,
+    ] = await Promise.all([
+      // Total submissions
+      this.db
+        .select({ count: count() })
+        .from(skillsSurveySubmissions),
+      // Completed submissions
+      this.db
+        .select({ count: count() })
+        .from(skillsSurveySubmissions)
+        .where(
+            eq(skillsSurveySubmissions.isComplete, true),
+        ),
+
+      // Total users
+      this.db.select({ count: count() }).from(users),
+
+      // Total roles
+      this.db.select({ count: count() }).from(roles),
+
+      // States covered
+      this.db
+        .select({ count: sql<number>`COUNT(DISTINCT ${basicInformation.state})` })
+        .from(basicInformation),
+
+      // Communities covered
+      this.db.select({ count: count() }).from(communities),
+
+      // Geo-tagged submissions
+      this.db
+        .select({ count: count() })
+        .from(basicInformation)
+        .where(
+and(
+                sql`${basicInformation.latitude} IS NOT NULL`,
+                sql`${basicInformation.longitude} IS NOT NULL`,
+              )
+           
+        ),
+    ]);
+
+    return {
+      submissionsTotal: submissionsResult[0]?.count || 0,
+      submissionsCompleted: completedResult[0]?.count || 0,
+      usersTotal: usersResult[0]?.count || 0,
+      rolesTotal: rolesResult[0]?.count || 0,
+      statesCovered: statesResult[0]?.count || 0,
+      communitiesCovered: communitiesResult[0]?.count || 0,
+      geoTaggedSubmissions: geoTaggedResult[0]?.count || 0,
+      biometricCapturesTotal: 0, // TODO: Implement when demographic table is properly joined
+      phoneNumbersCollected: 0, // TODO: Implement when demographic table is properly joined
+      emailsCollected: 0, // TODO: Implement when demographic table is properly joined
+    };
+  }
+
+  private async getStateBreakdownLite(whereConditions: any) {
+    const query = this.db
+      .select({
+        state: basicInformation.state,
+        zone: basicInformation.zone,
+        submissions: count(),
+        completed: sql<number>`COUNT(CASE WHEN ${skillsSurveySubmissions.isComplete} = true THEN 1 END)`,
+      })
+      .from(skillsSurveySubmissions)
+      .leftJoin(
+        basicInformation,
+        eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+      )
+      .groupBy(basicInformation.state, basicInformation.zone);
+
+    if (whereConditions) {
+      query.where(whereConditions);
+    }
+
+    return await query;
+  }
+
+  private async getDemographicsLite(whereConditions: any) {
+    const [genderResult, ageResult, nomadismResult, educationResult, occupationsResult] = await Promise.all([
+      // Gender distribution
+      this.db
+        .select({
+          sex: demographicInformation.sex,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          demographicInformation,
+          eq(skillsSurveySubmissions.id, demographicInformation.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(demographicInformation.sex),
+
+      // Age range distribution
+      this.db
+        .select({
+          ageRange: demographicInformation.ageRange,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          demographicInformation,
+          eq(skillsSurveySubmissions.id, demographicInformation.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(demographicInformation.ageRange),
+
+      // Nomadism type distribution
+      this.db
+        .select({
+          typeOfNomadism: demographicInformation.typeOfNomadism,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          demographicInformation,
+          eq(skillsSurveySubmissions.id, demographicInformation.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(demographicInformation.typeOfNomadism),
+
+      // Education level distribution
+      this.db
+        .select({
+          levelOfEducation: demographicInformation.levelOfEducation,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          demographicInformation,
+          eq(skillsSurveySubmissions.id, demographicInformation.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(demographicInformation.levelOfEducation),
+
+      // Occupations analysis
+      this.getOccupationCounts(whereConditions),
+    ]);
+
+    return {
+      gender: genderResult,
+      ageRange: ageResult,
+      nomadism: nomadismResult,
+      education: educationResult,
+      occupations: occupationsResult,
+    };
+  }
+
+  private async getOccupationCounts(whereConditions: any): Promise<Array<{ occupation: string; count: number }>> {
+    const occupationFields = [
+      'occupationHerding',
+      'occupationFarming',
+      'occupationFishing',
+      'occupationTrading',
+      'occupationArtisan',
+      'occupationOthers',
+    ];
+
+    const results: Array<{ occupation: string; count: number }> = [];
+    for (const field of occupationFields) {
+      const result = await this.db
+        .select({
+          count: sql<number>`COUNT(CASE WHEN ${demographicInformation[field]} = true THEN 1 END)`,
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          demographicInformation,
+          eq(skillsSurveySubmissions.id, demographicInformation.submissionId),
+        )
+        .where(whereConditions);
+
+      results.push({
+        occupation: field.replace('occupation', '').replace(/([A-Z])/g, ' $1').trim(),
+        count: result[0]?.count || 0,
+      });
+    }
+    return results;
+  }
+
+  private async getSkillsDataLite(whereConditions: any) {
+    const [
+      mostPreferredResult,
+      detailedInterestsResult,
+      detailedBarriersResult,
+      wantTrainingResult,
+      learningMethodResult,
+      availableResourcesResult,
+      preferredTimeResult,
+      hasCurrentSkillsResult,
+      confidenceLevelsResult,
+      skillsRelevanceResult,
+      availableForExternalTrainingResult,
+      externalTrainingTimelineResult,
+    ] = await Promise.all([
+      // Most preferred skills
+      this.db
+        .select({
+          skill: desiredSkills.mostPreferredSkill,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(desiredSkills.mostPreferredSkill)
+        .orderBy(desc(count()))
+        .limit(10),
+
+      // Detailed skill interests
+      this.getDetailedSkillInterests(whereConditions),
+
+      // Detailed barriers
+      this.getDetailedBarriers(whereConditions),
+
+      // Want training
+      this.db
+        .select({
+          value: skillsNeed.wantTraining,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          skillsNeed,
+          eq(skillsSurveySubmissions.id, skillsNeed.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(skillsNeed.wantTraining),
+
+      // Learning method
+      this.db
+        .select({
+          value: desiredSkills.learningMethod,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(desiredSkills.learningMethod),
+
+      // Available resources
+      this.db
+        .select({
+          value: desiredSkills.availableResources,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(desiredSkills.availableResources),
+
+      // Preferred learning time
+      this.db
+        .select({
+          value: desiredSkills.preferredLearningTime,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(desiredSkills.preferredLearningTime),
+
+      // Has current skills
+      this.db
+        .select({
+          value: currentSkills.hasSkills,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          currentSkills,
+          eq(skillsSurveySubmissions.id, currentSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(currentSkills.hasSkills),
+
+      // Confidence levels
+      this.db
+        .select({
+          level: currentSkills.confidenceLevel,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          currentSkills,
+          eq(skillsSurveySubmissions.id, currentSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(currentSkills.confidenceLevel),
+
+      // Skills relevance
+      this.db
+        .select({
+          level: skillsNeed.skillsRelevance,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          skillsNeed,
+          eq(skillsSurveySubmissions.id, skillsNeed.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(skillsNeed.skillsRelevance),
+
+      // Available for external training
+      this.db
+        .select({
+          value: desiredSkills.availableForExternalTraining,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(desiredSkills.availableForExternalTraining),
+
+      // External training timeline count
+      this.db
+        .select({ count: count() })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(
+          whereConditions
+            ? and(
+                sql`${desiredSkills.externalTrainingTimeline} IS NOT NULL`,
+                whereConditions,
+              )
+            : sql`${desiredSkills.externalTrainingTimeline} IS NOT NULL`,
+        ),
+    ]);
+
+    return {
+      mostPreferred: mostPreferredResult,
+      detailedInterests: detailedInterestsResult,
+      wantTraining: wantTrainingResult,
+      learningMethod: learningMethodResult,
+      availableResources: availableResourcesResult,
+      preferredLearningTime: preferredTimeResult,
+      hasCurrentSkills: hasCurrentSkillsResult,
+      confidenceLevels: confidenceLevelsResult,
+      skillsRelevance: skillsRelevanceResult,
+      detailedBarriers: detailedBarriersResult,
+      availableForExternalTraining: availableForExternalTrainingResult,
+      externalTrainingTimeline: externalTrainingTimelineResult[0]?.count || 0,
+    };
+  }
+
+  private async getDetailedSkillInterests(whereConditions: any): Promise<Array<{ interest: string; count: number; percentage: number }>> {
+    const skillFields = [
+      'interestedLivestockDairyBeef',
+      'interestedLivestockSmallRuminants',
+      'interestedLivestockFeeds',
+      'interestedPoultry',
+      'interestedRabbitary',
+      'interestedFishProduction',
+      'interestedSnailery',
+      'interestedBeeKeeping',
+      'interestedCropProduction',
+      'interestedIrrigation',
+      'interestedGardening',
+      'interestedIct',
+      'interestedPhoneRepairs',
+      'interestedFashionDesign',
+      'interestedKnitting',
+      'interestedHairDressing',
+      'interestedBeadsRaffia',
+      'interestedShoeBagMaking',
+      'interestedAutoMechanic',
+      'interestedCarpentry',
+      'interestedMasonry',
+      'interestedPomadeSoapMaking',
+      'interestedPotteryCeramics',
+      'interestedSolarPower',
+      'interestedWelding',
+      'interestedCatering',
+      'interestedOthers',
+    ];
+
+    // Get total submissions for percentage calculation
+    const totalResult = await this.db
+      .select({ count: count() })
+      .from(skillsSurveySubmissions)
+      .leftJoin(
+        basicInformation,
+        eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+      )
+      .leftJoin(
+        desiredSkills,
+        eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+      )
+      .where(whereConditions);
+
+    const totalSubmissions = totalResult[0]?.count || 0;
+    const results: Array<{ interest: string; count: number; percentage: number }> = [];
+
+    for (const field of skillFields) {
+      const result = await this.db
+        .select({
+          count: sql<number>`COUNT(CASE WHEN ${desiredSkills[field]} = true THEN 1 END)`,
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions);
+
+      const count = result[0]?.count || 0;
+      const percentage = totalSubmissions > 0 ? (count / totalSubmissions) * 100 : 0;
+
+      results.push({
+        interest: field.replace('interested', '').replace(/([A-Z])/g, ' $1').trim(),
+        count,
+        percentage,
+      });
+    }
+
+    // Sort by count descending
+    return results.sort((a, b) => b.count - a.count);
+  }
+
+  private async getDetailedBarriers(whereConditions: any): Promise<Array<{ barrier: string; count: number; percentage: number }>> {
+    const barrierFields = [
+      'barrierFinancialCost',
+      'barrierTimeConstraint',
+      'barrierLackOfInformation',
+      'barrierInaccessibility',
+      'barrierInsecurity',
+      'barrierHealthChallenges',
+      'barrierOthers',
+    ];
+
+    // Get total submissions for percentage calculation
+    const totalResult = await this.db
+      .select({ count: count() })
+      .from(skillsSurveySubmissions)
+      .leftJoin(
+        basicInformation,
+        eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+      )
+      .leftJoin(
+        desiredSkills,
+        eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+      )
+      .where(whereConditions);
+
+    const totalSubmissions = totalResult[0]?.count || 0;
+    const results: Array<{ barrier: string; count: number; percentage: number }> = [];
+
+    for (const field of barrierFields) {
+      const result = await this.db
+        .select({
+          count: sql<number>`COUNT(CASE WHEN ${desiredSkills[field]} = true THEN 1 END)`,
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          desiredSkills,
+          eq(skillsSurveySubmissions.id, desiredSkills.submissionId),
+        )
+        .where(whereConditions);
+
+      const count = result[0]?.count || 0;
+      const percentage = totalSubmissions > 0 ? (count / totalSubmissions) * 100 : 0;
+
+      results.push({
+        barrier: field.replace('barrier', '').replace(/([A-Z])/g, ' $1').trim(),
+        count,
+        percentage,
+      });
+    }
+
+    // Sort by count descending
+    return results.sort((a, b) => b.count - a.count);
+  }
+
+  private async getRecentsLite(whereConditions: any) {
+    const query = this.db
+      .select({
+        id: skillsSurveySubmissions.id,
+        state: basicInformation.state,
+        community: basicInformation.nameOfCommunity,
+        submittedAt: skillsSurveySubmissions.submittedAt,
+      })
+      .from(skillsSurveySubmissions)
+      .leftJoin(
+        basicInformation,
+        eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+      )
+      .orderBy(desc(skillsSurveySubmissions.submittedAt))
+      .limit(5);
+
+    if (whereConditions) {
+      query.where(whereConditions);
+    }
+
+    return await query;
+  }
+
+  private async getPerceptionsLite(whereConditions: any) {
+    const [
+      skillsImportanceResult,
+      communitySupportResult,
+      financialSecurityResult,
+      improvementSuggestionsResult,
+    ] = await Promise.all([
+      // Skills importance for development
+      this.db
+        .select({
+          rating: perceptionOfSkills.skillsImportanceForDevelopment,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          perceptionOfSkills,
+          eq(skillsSurveySubmissions.id, perceptionOfSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(perceptionOfSkills.skillsImportanceForDevelopment),
+
+      // Community skills support level
+      this.db
+        .select({
+          rating: perceptionOfSkills.communitySkillsSupportLevel,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          perceptionOfSkills,
+          eq(skillsSurveySubmissions.id, perceptionOfSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(perceptionOfSkills.communitySkillsSupportLevel),
+
+      // Skills effective for financial security
+      this.db
+        .select({
+          rating: perceptionOfSkills.skillsEffectiveForFinancialSecurity,
+          count: count(),
+        })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          perceptionOfSkills,
+          eq(skillsSurveySubmissions.id, perceptionOfSkills.submissionId),
+        )
+        .where(whereConditions)
+        .groupBy(perceptionOfSkills.skillsEffectiveForFinancialSecurity),
+
+      // Count of improvement suggestions
+      this.db
+        .select({ count: count() })
+        .from(skillsSurveySubmissions)
+        .leftJoin(
+          basicInformation,
+          eq(skillsSurveySubmissions.id, basicInformation.submissionId),
+        )
+        .leftJoin(
+          perceptionOfSkills,
+          eq(skillsSurveySubmissions.id, perceptionOfSkills.submissionId),
+        )
+        .where(
+          whereConditions
+            ? and(
+                sql`${perceptionOfSkills.suggestionsForImprovement} IS NOT NULL`,
+                whereConditions,
+              )
+            : sql`${perceptionOfSkills.suggestionsForImprovement} IS NOT NULL`,
+        ),
+    ]);
+
+    return {
+      skillsImportanceForDevelopment: skillsImportanceResult,
+      communitySkillsSupportLevel: communitySupportResult,
+      skillsEffectiveForFinancialSecurity: financialSecurityResult,
+      improvementSuggestions: improvementSuggestionsResult[0]?.count || 0,
+    };
   }
 
   private getStateCode(stateName: string): string {

@@ -47,33 +47,57 @@ export class SkillsSurveyService {
 
         // Insert basic information
         if (createSurveyDto.basicInformation) {
+          let snapshotState = createSurveyDto.basicInformation.state || null;
+          let snapshotLga = createSurveyDto.basicInformation.localGovernmentArea || null;
+          let snapshotCommunity = createSurveyDto.basicInformation.nameOfCommunity || null;
+          let snapshotZone = (createSurveyDto.basicInformation.zone as
+            | 'north-west'
+            | 'north-east'
+            | 'north-central'
+            | 'south-east'
+            | 'south-west'
+            | 'south-south') || null;
+          let snapshotLat = createSurveyDto.basicInformation.latitude || null;
+          let snapshotLon = createSurveyDto.basicInformation.longitude || null;
+          let communityId: string = createSurveyDto.basicInformation.communityId;
+
+          // If communityId provided, fetch and snapshot authoritative values
+          if (communityId) {
+            const community = await tx.query.communities.findFirst({
+              where: eq(schema.communities.id, communityId!),
+            });
+            if (!community) {
+              throw new BadRequestException('Invalid communityId provided');
+            }
+            snapshotState = community.state;
+            snapshotLga = community.localGovernmentArea;
+            snapshotCommunity = community.nameOfCommunity;
+            snapshotZone = community.zone as any;
+            snapshotLat = community.latitude ?? snapshotLat;
+            snapshotLon = community.longitude ?? snapshotLon;
+          }
+
           const basicInfo = {
             submissionId,
+            communityId,
+            enteredBy: userId || null,
             dateOfSurvey: createSurveyDto.basicInformation.dateOfSurvey
               ? new Date(createSurveyDto.basicInformation.dateOfSurvey)
               : null,
-            state: createSurveyDto.basicInformation.state || null,
-            localGovernmentArea:
-              createSurveyDto.basicInformation.localGovernmentArea || null,
-            nameOfCommunity:
-              createSurveyDto.basicInformation.nameOfCommunity || null,
-            zone:
-              (createSurveyDto.basicInformation.zone as
-                | 'north-west'
-                | 'north-east'
-                | 'north-central'
-                | 'south-east'
-                | 'south-west'
-                | 'south-south') || null,
-            latitude: createSurveyDto.basicInformation.latitude || null,
-            longitude: createSurveyDto.basicInformation.longitude || null,
+            state: snapshotState,
+            localGovernmentArea: snapshotLga,
+            nameOfCommunity: snapshotCommunity,
+            zone: snapshotZone,
+            latitude: snapshotLat,
+            longitude: snapshotLon,
           };
           await tx.insert(basicInformation).values(basicInfo);
         }
 
         // Insert demographic information (required)
-        const demographicInfo = {
+          const demographicInfo = {
           submissionId,
+            enteredBy: userId || null,
           firstName: createSurveyDto.demographicInformation.firstName,
           middleName: createSurveyDto.demographicInformation.middleName || null,
           lastName: createSurveyDto.demographicInformation.lastName,
@@ -129,6 +153,7 @@ export class SkillsSurveyService {
         if (createSurveyDto.currentSkills) {
           const currentSkillsData = {
             submissionId,
+            enteredBy: userId || null,
             hasSkills: createSurveyDto.currentSkills.hasSkills || null,
             skillsDescription:
               createSurveyDto.currentSkills.skillsDescription || null,
@@ -144,6 +169,7 @@ export class SkillsSurveyService {
         if (createSurveyDto.skillsNeed) {
           const skillsNeedData = {
             submissionId,
+            enteredBy: userId || null,
             wantTraining: createSurveyDto.skillsNeed.wantTraining || null,
             skillsToLearn: createSurveyDto.skillsNeed.skillsToLearn || null,
             skillsRelevance: createSurveyDto.skillsNeed.skillsRelevance || null,
@@ -155,6 +181,7 @@ export class SkillsSurveyService {
         if (createSurveyDto.desiredSkills) {
           const desiredSkillsData = {
             submissionId,
+            enteredBy: userId || null,
             communitySkillsNeeded:
               createSurveyDto.desiredSkills.communitySkillsNeeded || null,
             interestedLivestockDairyBeef:
@@ -285,6 +312,7 @@ export class SkillsSurveyService {
         if (createSurveyDto.perceptionOfSkills) {
           const perceptionData = {
             submissionId,
+            enteredBy: userId || null,
             skillsImportanceForDevelopment:
               createSurveyDto.perceptionOfSkills
                 .skillsImportanceForDevelopment || null,
@@ -344,25 +372,47 @@ export class SkillsSurveyService {
             where: eq(basicInformation.submissionId, id),
           });
 
+          let snapshotState = updateSurveyDto.basicInformation.state || null;
+          let snapshotLga = updateSurveyDto.basicInformation.localGovernmentArea || null;
+          let snapshotCommunity = updateSurveyDto.basicInformation.nameOfCommunity || null;
+          let snapshotZone = (updateSurveyDto.basicInformation.zone as
+            | 'north-west'
+            | 'north-east'
+            | 'north-central'
+            | 'south-east'
+            | 'south-west'
+            | 'south-south') || null;
+          let snapshotLat = updateSurveyDto.basicInformation.latitude || null;
+          let snapshotLon = updateSurveyDto.basicInformation.longitude || null;
+          let communityId: string  = updateSurveyDto.basicInformation.communityId;
+
+          if (communityId) {
+            const community = await tx.query.communities.findFirst({
+              where: eq(schema.communities.id, communityId!),
+            });
+            if (!community) {
+              throw new BadRequestException('Invalid communityId provided');
+            }
+            snapshotState = community.state;
+            snapshotLga = community.localGovernmentArea;
+            snapshotCommunity = community.nameOfCommunity;
+            snapshotZone = community.zone as any;
+            snapshotLat = community.latitude ?? snapshotLat;
+            snapshotLon = community.longitude ?? snapshotLon;
+          }
+
           const basicInfoUpdate = {
+            communityId,
+            enteredBy: userId || null,
             dateOfSurvey: updateSurveyDto.basicInformation.dateOfSurvey
               ? new Date(updateSurveyDto.basicInformation.dateOfSurvey)
               : null,
-            state: updateSurveyDto.basicInformation.state || null,
-            localGovernmentArea:
-              updateSurveyDto.basicInformation.localGovernmentArea || null,
-            nameOfCommunity:
-              updateSurveyDto.basicInformation.nameOfCommunity || null,
-            zone:
-              (updateSurveyDto.basicInformation.zone as
-                | 'north-west'
-                | 'north-east'
-                | 'north-central'
-                | 'south-east'
-                | 'south-west'
-                | 'south-south') || null,
-            latitude: updateSurveyDto.basicInformation.latitude || null,
-            longitude: updateSurveyDto.basicInformation.longitude || null,
+            state: snapshotState,
+            localGovernmentArea: snapshotLga,
+            nameOfCommunity: snapshotCommunity,
+            zone: snapshotZone,
+            latitude: snapshotLat,
+            longitude: snapshotLon,
           };
 
           if (existing) {
@@ -445,6 +495,7 @@ export class SkillsSurveyService {
           } else {
             await tx.insert(demographicInformation).values({
               submissionId: id,
+              enteredBy: userId || null,
               ...demographicInfoUpdate,
             });
           }
@@ -464,6 +515,7 @@ export class SkillsSurveyService {
           } else {
             await tx.insert(currentSkills).values({
               submissionId: id,
+              enteredBy: userId || null,
               ...updateSurveyDto.currentSkills,
             });
           }
@@ -483,6 +535,7 @@ export class SkillsSurveyService {
           } else {
             await tx.insert(skillsNeed).values({
               submissionId: id,
+              enteredBy: userId || null,
               ...updateSurveyDto.skillsNeed,
             });
           }
@@ -628,6 +681,7 @@ export class SkillsSurveyService {
           } else {
             await tx.insert(desiredSkills).values({
               submissionId: id,
+              enteredBy: userId || null,
               ...desiredSkillsUpdate,
             });
           }
@@ -647,6 +701,7 @@ export class SkillsSurveyService {
           } else {
             await tx.insert(perceptionOfSkills).values({
               submissionId: id,
+              enteredBy: userId || null,
               ...updateSurveyDto.perceptionOfSkills,
             });
           }

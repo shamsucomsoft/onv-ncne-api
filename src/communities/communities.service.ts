@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
-import { and, count, desc, eq, gte, lte, SQL, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import {
   basicInformation,
   demographicInformation,
@@ -8,8 +8,13 @@ import {
   desiredSkills,
   currentSkills,
   perceptionOfSkills,
+  communities,
 } from '../drizzle/schema';
 import { DRIZZLE_ORM, DrizzleORM } from 'src/drizzle/drizzle.module';
+import { CreateCommunityDto } from './dto/community.dto';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+// Removed heavy seed-data import. Seeding is now handled by standalone script in `src/drizzle/seed.ts`.
+import * as schema from '../drizzle/schema';
 
 export interface CommunityStats {
   totalCommunities: number;
@@ -185,8 +190,11 @@ export interface EducationalProgramsResponse {
 
 @Injectable()
 export class CommunitiesService {
-  constructor(@Inject(DRIZZLE_ORM) private db: DrizzleORM) {}
+  constructor(@Inject(DRIZZLE_ORM) private db: DrizzleORM) {
+    // Seeding moved to standalone script to avoid heavy startup and stack overflows.
+  }
 
+  // Seeding method removed. Use `npm run seed` to populate the database.
   async getCommunitiesData(): Promise<CommunitiesResponse> {
     const [
       communityStats,
@@ -211,6 +219,50 @@ export class CommunitiesService {
       distanceAnalysis,
       challenges,
       zoneData,
+    };
+  }
+
+  async listCommunities() {
+    const items = await this.db
+      .select()
+      .from(communities)
+      .orderBy(communities.state, communities.localGovernmentArea, communities.nameOfCommunity);
+    return {
+      success: true,
+      message: 'Communities retrieved successfully',
+      data: items,
+    };
+  }
+
+  async createCommunity(dto: CreateCommunityDto, userId?: string) {
+    // enforce uniqueness: state + LGA + name
+    const existing = await this.db.query.communities.findFirst({
+      where: (fields, { and, eq }) =>
+        and(
+          eq(fields.state, dto.state),
+          eq(fields.localGovernmentArea, dto.localGovernmentArea),
+          eq(fields.nameOfCommunity, dto.nameOfCommunity),
+        ),
+    });
+    if (existing) {
+      throw new ConflictException('Community already exists for this State/LGA/Name');
+    }
+    const [created] = await this.db
+      .insert(communities)
+      .values({
+        nameOfCommunity: dto.nameOfCommunity,
+        state: dto.state,
+        localGovernmentArea: dto.localGovernmentArea,
+        zone: dto.zone as any,
+        latitude: dto.latitude ?? null,
+        longitude: dto.longitude ?? null,
+        createdBy: userId || null,
+      })
+      .returning();
+    return {
+      success: true,
+      message: 'Community created successfully',
+      data: created,
     };
   }
 

@@ -17,6 +17,9 @@ export class BasicInformationDto {
   @IsOptional()
   dateOfSurvey?: string;
 
+  @IsUUID()
+  communityId!: string;
+
   @IsString()
   @IsOptional()
   state?: string;

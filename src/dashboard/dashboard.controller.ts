@@ -47,6 +47,44 @@ export class DashboardController {
     }
   }
 
+  @Get('stats-lite')
+  @Public() // Make public for now, can be protected later
+  async getDashboardStatsLite(@Query() filters: DashboardFiltersDto) {
+    try {
+      const stats = await this.dashboardService.getDashboardStatsLite(filters);
+      return {
+        success: true,
+        message: 'Dashboard lite statistics retrieved successfully',
+        data: stats,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to retrieve dashboard lite statistics',
+        error: error.message,
+      };
+    }
+  }
+
+  @Get('public')
+  @Public() // Make public for now, can be protected later
+  async getPublicData() {
+    try {
+      const data = await this.dashboardService.getPublicData();
+      return {
+        success: true,
+        message: 'Public data retrieved successfully',
+        data: data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to retrieve public data',
+        error: error.message,
+      };
+    }
+  }
+
   @Get('states')
   @Public() // Make public for now, can be protected later
   async getStatesList(@Query() filters: DashboardFiltersDto) {
