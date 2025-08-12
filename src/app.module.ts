@@ -13,6 +13,7 @@ import { CommunitiesModule } from './communities/communities.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { StorageModule } from './storage/storage.module';
+import { NomadicPublicModule } from './public/nomadic-public.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StorageModule } from './storage/storage.module';
     DashboardModule,
     CommunitiesModule,
     StorageModule,
+    NomadicPublicModule,
   ],
   controllers: [AppController],
   providers: [
