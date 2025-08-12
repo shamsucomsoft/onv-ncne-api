@@ -130,7 +130,7 @@ export class DashboardService {
       _gender,
     ] = await Promise.all([
       this.db.select({ count: count() }).from(skillsSurveySubmissions),
-      this.db.execute(sql`select count(distinct(c.localGovernmentArea)) as count from communities c ;`),
+      this.db.execute(sql`select count(distinct(c.local_government_area)) as count from communities c ;`),
       this.db.select({ count: count() }).from(communities),
       this.db
         .select({ count: count() })
