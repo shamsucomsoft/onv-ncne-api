@@ -130,7 +130,7 @@ export class DashboardService {
       _gender,
     ] = await Promise.all([
       this.db.select({ count: count() }).from(skillsSurveySubmissions),
-      this.db.select({ count: count(communities.state) }).from(communities).groupBy(communities.state),
+      this.db.execute(sql`select count(distinct(c.localGovernmentArea)) as count from communities c ;`),
       this.db.select({ count: count() }).from(communities),
       this.db
         .select({ count: count() })
@@ -142,7 +142,7 @@ export class DashboardService {
         .where(eq(demographicInformation.sex, 'female')),
     ]);
     data.collections = collections[0]?.count || 0;
-    data.states = states[0]?.count || 0;
+    data.states = Number(states.rows[0].count) || 0;
     data.communities = _communities[0]?.count || 0;
     data.gender.male = gender[0]?.count || 0;
     data.gender.female = _gender[0]?.count || 0;
