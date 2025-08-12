@@ -52,5 +52,9 @@ pids
 *.seed
 *.pid.lock
 
+# seed data
+/src/drizzle/seed.ts
+/src/drizzle/seed-data.ts
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
